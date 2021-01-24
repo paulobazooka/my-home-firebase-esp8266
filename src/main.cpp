@@ -1,80 +1,96 @@
 #include <Arduino.h>
 
-#include <Wire.h> // Importa a Biblioteca comunicação I2C
+#include <DHT.h>
+#include <Wire.h>     // Importa a Biblioteca comunicação I2C
+#include <LittleFS.h> // Manipular arquivos
+#include <ArduinoJson.h>
 #include <ESP8266WiFi.h>
+#include <WiFiManager.h>    // Importa a Biblioteca que gerencia a conexão wifi
 #include <user_interface.h> // Importa a Biblioteca necessaria para acessar os Timer`s.
 #include <FirebaseESP8266.h>
-#include "Adafruit_MCP23017.h" // Importa a Biblioteca MCP23017
+#include <Adafruit_MCP23017.h> // Importa a Biblioteca MCP23017
 #include <LiquidCrystal_I2C.h> // Importa a Biblioteca display cristal liquido
-#include <DHT.h>
+#include <ESP8266httpUpdate.h>
 
-#include "SerialSetup.h"
 #include "FirebaseConst.h"
-#include "MCP23017Setup.h"
-#include "WifiManagerSetup.h"
 
 // Definições -------------------
 #define DHTPIN D5     // Digital pin connected to the DHT sensor
 #define DHTTYPE DHT22 // DHT 22 (AM2302)
 
 // Objetos ----------------------
+Adafruit_MCP23017 mcp; // Instancia da classe Adafruit_MCP23017
+WiFiClientSecure client;
+WiFiManager wifiManager; // Instancia da classe Gerenciadora de WiFi
+DHT dht(DHTPIN, DHTTYPE);
 FirebaseData firebaseData;
 FirebaseData firebaseData2;
-WiFiClient client;
-DHT dht(DHTPIN, DHTTYPE);
-Adafruit_MCP23017 mcp;              // Instancia da classe Adafruit_MCP23017
 LiquidCrystal_I2C lcd(0x27, 16, 2); // Instancia da classe liquid
 
 // Variáveis Globais ------------
 os_timer_t tmr0;
+char PROJETO[20];
 float umidade = 0.0;
+char VERSAO_LOCAL[10];
+char URL_FIRMWARE[150];
+char VERSAO_REMOTA[10];
 float temperatura = 0.0;
-unsigned int segundos = 0;
+const unsigned int MONITOR_SPEED = 115200;
+const char *apName = "MyHome[192.168.4.1]";
+unsigned long TEMPO_VERIFICAR_SENSOR;
+unsigned long TEMPO_VERIFICAR_ATUALIZACAO;
+const unsigned long INTERVALO_VERIFICAR_SENSOR = 1000 * 5; // 5 segundos
+const unsigned long INTERVALO_VERIFICAR_ATUALIZACAO = 1000 * 60 * 30; // 30 minutos
 byte grau[8] = {B00000110, B00001001, B00001001, B00000110, B00000000, B00000000, B00000000, B00000000}; // icone de temperatura
+const char URL_UPDATE[150] = "https://raw.githubusercontent.com/paulobazooka/my_home_esp8266_vc/main/versao.json";
 
 // Declaração Funções -----------
-void customTimmer(void *z);
-void setupTimmer();
+void error(int error);
+void update();
+void started();
+void setupFS();
+void finished();
 void setupLCD();
+void wifiSetup();
+void readSensor();
+void checkUpdate();
+void serialSetup();
 void setupFirebase();
+void setupMCP23017();
 void printResult(StreamData &data);
 void printResult(FirebaseData &data);
 void streamCallback(StreamData data);
 void streamTimeoutCallback(bool timeout);
-void readSensor();
+void progress(size_t progresso, size_t total);
 
 void setup()
 {
+  client.setInsecure();
+
   serialSetup();
+  setupFS();
   setupLCD();
-  setupMCP23017(mcp);
-  setupTimmer();
-  wifiSetup(lcd);
+  setupMCP23017();
+  wifiSetup();
+  checkUpdate();
   setupFirebase();
   dht.begin();
+  TEMPO_VERIFICAR_ATUALIZACAO = millis();
+  TEMPO_VERIFICAR_SENSOR = millis();
 }
 
 void loop()
 {
-  if (segundos >= 5)
-  {
-    readSensor();
-    segundos = 0;
+  if (millis() - TEMPO_VERIFICAR_ATUALIZACAO > INTERVALO_VERIFICAR_ATUALIZACAO){
+    TEMPO_VERIFICAR_ATUALIZACAO = millis();
+    checkUpdate();
   }
-}
-
-// Implementações Funções ----------
-void customTimmer(void *z)
-{
-  segundos++;
-}
-
-void setupTimmer()
-{
-  Serial.println("*MA: Configurando o Timmer0");
-  os_timer_setfn(&tmr0, customTimmer, NULL); //Indica ao Timer qual sera sua Sub rotina.
-  os_timer_arm(&tmr0, 1000, true);           //Inidica ao Timer seu Tempo em mS e se sera repetido ou apenas uma vez (loop = true)
-                                             //Neste caso, queremos que o processo seja repetido, entao usaremos TRUE.
+  
+  if (millis() - TEMPO_VERIFICAR_SENSOR > INTERVALO_VERIFICAR_SENSOR){
+    TEMPO_VERIFICAR_SENSOR = millis();
+    readSensor();
+  }
+  yield();
 }
 
 void setupLCD()
@@ -329,7 +345,7 @@ void setupFirebase()
   {
     lcd.print(" ");
     lcd.print(WiFi.localIP());
-    lcd.setCursor(0,1);
+    lcd.setCursor(0, 1);
     lcd.print("                ");
   }
 
@@ -373,4 +389,192 @@ void readSensor()
     lcd.print(umidade);
     lcd.print("% ");
   }
+}
+
+void serialSetup()
+{
+  Serial.begin(MONITOR_SPEED);
+  delay(100);
+  Serial.println();
+  Serial.println();
+  Serial.print("*SS: Módulo de comunicação serial iniciado com ");
+  Serial.print(MONITOR_SPEED);
+  Serial.println(" kbps");
+}
+
+void setupMCP23017()
+{
+  Serial.println("*MP: Configurando I/O MCP23017");
+  mcp.begin();
+  delay(100);
+
+  for (byte i = 0; i < 8; i++)
+  {
+    mcp.pinMode(i, OUTPUT);
+    mcp.digitalWrite(i, HIGH);
+  }
+}
+
+void wifiSetup()
+{
+  lcd.setCursor(0, 0);
+  lcd.print("    Meu Lar");
+  delay(1000);
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Automacao");
+  lcd.setCursor(0, 1);
+  lcd.print("Residencial");
+  delay(1000);
+  lcd.clear();
+  lcd.print("Conectando");
+  lcd.setCursor(0, 1);
+  lcd.print("     no roteador");
+
+  if (!wifiManager.autoConnect(apName))
+  {
+    Serial.println("*WS: A conexão WiFi falhou");
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("*WS: Nao foi possivel");
+    lcd.setCursor(0, 1);
+    lcd.print("*WS: conectar ao WiFi");
+    delay(1000);
+    ESP.reset(); //reset and try again, or maybe put it to deep sleep
+    delay(1000);
+  }
+}
+
+void setupFS()
+{
+  if (LittleFS.begin())
+  {
+    Serial.println("*SF: Partição de arquivos iniciado com sucesso!");
+    Dir dir = LittleFS.openDir("/");
+    File versao = LittleFS.open("versao.json", "r");
+
+    if (!versao)
+    {
+      Serial.println("*SF: Erro ao abrir arquivo de configuração!");
+    }
+    else
+    {
+      String s = versao.readString();
+      s.trim();
+      StaticJsonDocument<100> doc;
+      deserializeJson(doc, s);
+      strlcpy(VERSAO_LOCAL, doc["versao"], sizeof(VERSAO_LOCAL));
+      strlcpy(PROJETO, doc["projeto"], sizeof(PROJETO));
+      //Serial.print("projeto "); Serial.println(PROJETO);
+      //Serial.print("versão "); Serial.println(VERSAO_LOCAL);
+    }
+    versao.close();
+
+    LittleFS.end();
+  }
+}
+
+void checkUpdate()
+{
+  Serial.println("*CH: Verificando versão do firmware.");
+  HTTPClient http;
+  http.begin(client, URL_UPDATE);
+  int httpCode = http.GET();
+  String s = http.getString();
+  http.end();
+  s.trim();
+
+  if (httpCode != HTTP_CODE_OK)
+  {
+    Serial.print("*CH: Não foi possível acessar o serviço de versionamento: ");
+    Serial.println(URL_UPDATE);
+  }
+  else
+  {
+    StaticJsonDocument<300> jsonVC;
+    if (deserializeJson(jsonVC, s))
+    {
+      Serial.println("*CH: Arquivo de versão inválido");
+    }
+    else
+    {
+      strlcpy(VERSAO_REMOTA, jsonVC["versao"] | "", sizeof(VERSAO_REMOTA));
+      strlcpy(URL_FIRMWARE, jsonVC["url"] | "", sizeof(URL_FIRMWARE));
+      //Serial.print("*CH: Versão local  "); Serial.println(VERSAO_LOCAL);
+      //Serial.print("*CH: Versão remota "); Serial.println(VERSAO_REMOTA);
+
+      if (strcmp(VERSAO_LOCAL, VERSAO_REMOTA) != 0)
+      {
+        Serial.println("*CH: Nova versão disponível para download!");
+        if (strcmp(URL_FIRMWARE, "") == 0 || URL_FIRMWARE == NULL)
+        {
+          Serial.println("*CH: Url do firmware mal formatado!");
+        }
+        else
+        {
+          Serial.println("*CH: Atualizando...");
+          yield();
+          update();
+        }
+      }
+      else
+      {
+        Serial.println("*CH: Nenhuma atualização disponível!");
+      }
+    }
+  }
+}
+
+void progress(size_t progresso, size_t total)
+{
+  Serial.print(progresso * 100 / total);
+  Serial.print("% ");
+};
+
+void started()
+{
+  Serial.println("\n*UP: Atualização inicializada!");
+}
+
+void finished()
+{
+  Serial.println("\n*UP: Atualização completada com sucesso!");
+  if (LittleFS.begin())
+  {
+      StaticJsonDocument<250> doc;
+      
+      File file = LittleFS.open("versao.json", "r");
+      deserializeJson(doc, file);
+      file.close();      
+      
+      doc["versao"] = VERSAO_REMOTA;
+      
+      File newFile = LittleFS.open("versao.json", "w");
+      Serial.println("*UP: Atualizando arquivo local de versão...");
+      serializeJsonPretty(doc, newFile);
+      newFile.close();
+
+      LittleFS.end();
+  }
+  Serial.println("*UP: Reinicializando...");
+  ESP.restart();
+}
+
+void error(int err)
+{
+  String s = ESPhttpUpdate.getLastErrorString();
+  Serial.println("\n*UP: Erro ao fazer atualização => " + s);
+}
+
+void update()
+{
+  ESPhttpUpdate.onError(error);
+  ESPhttpUpdate.onEnd(finished);
+  ESPhttpUpdate.onStart(started);
+  ESPhttpUpdate.onProgress(progress);
+
+  ESPhttpUpdate.rebootOnUpdate(false);
+  ESPhttpUpdate.closeConnectionsOnUpdate(true);
+
+  ESPhttpUpdate.update(client, URL_FIRMWARE); 
 }
