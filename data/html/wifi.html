@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1.0, shrink-to-fit=no">
+    <link rel="icon" href="../image/favicon.ico" type="image/x-icon"/>
+    <link href="../style/wifi.css" rel="stylesheet">
+    <title>WIFI</title>
+</head>
+
+<body>
+    <div class="wrapper">
+        <div class="title">
+            <h1>WIFI</h1>
+            <h3>Configuração</h3>
+        </div>
+        <div>
+            <form action="/wifi" class="input-fields" method="POST">
+                <input type="text" class="input" placeholder="Nome da rede" id="ssid" name="ssid" value="%ssid%" required>
+                <label for="ssid">Nome da rede wifi</label>
+                <input type="password" class="input" placeholder="Senha da rede" id="password" name="password" value="%password%" required>
+                <label for="password">Senha da rede wifi</label>
+                <input type="submit" class="btn" value="salvar">
+            </form>
+        </div>
+        <div>
+            <form action="/" class="input-fields" method="GET">
+                <input type="submit" class="btn" value="voltar">
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>

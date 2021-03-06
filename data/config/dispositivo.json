@@ -1,0 +1,9 @@
+{
+    "boot": 0,
+    "projeto": "MEU LAR",
+    "device": "NODEMCU-ESP8266",
+    "modelo": "m1",
+    "versao_firmware": "2.0.0",
+    "versao_interface": "2.0.0",
+    "url_update": "url_update"
+}

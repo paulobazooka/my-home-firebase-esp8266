@@ -1,0 +1,12 @@
+{
+    "qos": 0,
+    "port": 1883,
+    "ativo": true,
+    "is_adafruit": true,
+    "user": "paulobianquezi",
+    "server": "io.adafruit.com",
+    "key": "aio_Ugnt10ywIrhCc0kE34u6Ux0YsOla",
+    "feed_umidade": "paulobianquezi/feeds/umidade",
+    "feed_indice_calor": "paulobianquezi/feeds/indice",
+    "feed_temperatura": "paulobianquezi/feeds/temperatura"
+}

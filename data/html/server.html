@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1.0, shrink-to-fit=no">
+    <link rel="icon" href="../image/favicon.ico" type="image/x-icon" />
+    <link href="../style/server.css" rel="stylesheet">
+    <title>SERVIDOR</title>
+</head>
+
+<body>
+    <div class="wrapper">
+        <div class="title">
+            <h1>Servidor</h1>
+            <h3>Configuração</h3>
+        </div>
+        <div>
+            <form action="/server" class="input-fields" method="POST">
+                <div>
+                    <fieldset>
+                        <legend class="ch-label">Servidor MQTT</legend>
+                        <input type="checkbox" class="choice" id="is_adafruit" name="is_adafruit">
+                        <label for="is_adafruit" class="ch-label">Está usando o serviço da Adafruit?</label>
+                    </fieldset>
+                </div>
+                <div id="campo_server">
+                    <input type="text" class="input" placeholder="Servidor ex.: io.adafruit.com" id="server"
+                        name="server" value="%server%" required>
+                    <label for="server">Servidor - ex:io.adafruit.com</label>
+                </div>
+                <div id="campo_port">
+                    <input type="number" class="input" placeholder="Porta do servidor" id="port" name="port" value="%port%"
+                        required>
+                    <label for="port">Porta - ex:1883</label>
+                </div>
+
+                <input type="text" class="input" placeholder="login/usuário" id="user" name="user" value="%user%"
+                    required>
+                <label for="user">Login/usuário para acesso ao servidor</label>
+
+                <input type="text" class="input" placeholder="senha/key" id="key" name="key" value="%key%" required>
+                <label for="key">Senha/key para acesso ao servidor</label>
+
+                <input type="text" class="input" placeholder="feed temperatura" id="feed_temp" name="feed_temp"
+                    value="%feed_temp%" required>
+                <label for="feed_temp" id="temp_label">Feed temperatura - ex:temperatura</label>
+
+                <input type="text" class="input" placeholder="feed umidade" id="feed_umi" name="feed_umi"
+                    value="%feed_umi%" required>
+                <label for="feed_umi" id="umi_label">Feed umidade - ex:umidade</label>
+
+                <input type="text" class="input" placeholder="feed indice de calor" id="feed_indice" name="feed_indice"
+                    value="%feed_indice%" required>
+                <label for="feed_indice" id="indice_label">Feed indice de calor - ex:indice</label>
+                
+                <input type="submit" class="btn" value="salvar">
+            </form>
+        </div>
+        <div>
+            <form action="/" class="input-fields" method="GET">
+                <input type="submit" class="btn" value="voltar">
+            </form>
+        </div>
+    </div>
+    <script src="../script/server.js"></script>
+</body>
+
+</html>

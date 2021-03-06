@@ -12,7 +12,14 @@
 #include <LiquidCrystal_I2C.h> // Importa a Biblioteca display cristal liquido
 #include <ESP8266httpUpdate.h>
 
+#include "Log.h"
+#include "Utilidades.h"
 #include "FirebaseConst.h"
+#include "GerenciadorDHT.h"
+#include "GerenciadorLog.h"
+#include "GerenciadorWifi.h"
+#include "GerenciadorServer.h"
+#include "GerenciadorArquivos.h"
 
 // Definições -------------------
 #define DHTPIN D5     // Digital pin connected to the DHT sensor
@@ -21,11 +28,21 @@
 // Objetos ----------------------
 Adafruit_MCP23017 mcp; // Instancia da classe Adafruit_MCP23017
 WiFiClientSecure client;
-WiFiManager wifiManager; // Instancia da classe Gerenciadora de WiFi
+WiFiClient client;
+AsyncWebServer server(80);
+//WiFiManager wifiManager; // Instancia da classe Gerenciadora de WiFi
 DHT dht(DHTPIN, DHTTYPE);
 FirebaseData firebaseData;
 FirebaseData firebaseData2;
 LiquidCrystal_I2C lcd(0x27, 16, 2); // Instancia da classe liquid
+
+Log console(9600);
+GerenciadorArquivos gerenciadorArquivos(&console);
+GerenciadorWifi gerenciadorWifi(&server, &gerenciadorArquivos, &console, &serverData, &wifiData, &dispositivo, &reiniciar);
+GerenciadorDHT gerenciadorDHT(&dht, &console, &temperatura, &umidade, &indiceCalor);
+GerenciadorServer gerenciadorAdafruit(&console, mqtt, feedTemp, feedUmidade, feedIndiceCalor, &serverData);
+GerenciadorLog gerenciadorLog(&gerenciadorArquivos);
+
 
 // Variáveis Globais ------------
 os_timer_t tmr0;

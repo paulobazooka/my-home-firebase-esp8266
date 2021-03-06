@@ -1,0 +1,100 @@
+
+*{
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  outline: none;
+  font-weight: bold;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+body{
+  background-color: #008080;
+  background-size: cover;
+  height: 100vh;
+}
+
+thead, tbody{
+  display: block;  
+}
+
+tbody{
+  overflow-y: scroll;
+  height: 100%;
+}
+
+.wrapper{
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 98%;
+  height: 98%;
+  max-height: 98%;
+  max-width: 98%;
+  background: #B2D8D8;
+  padding: 10px;
+  border-radius: 15px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+
+.table-style{
+  overflow-x: auto;
+  overflow-y: auto;
+  height: 80%;
+}
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  background: #c4c3c3;
+  width: 100%;
+  border: 1px solid rgb(0, 0, 0);
+}
+
+th {
+  text-align: left;
+  padding: 8px;
+  text-transform: uppercase;
+  color: brown;
+}
+
+td {
+  text-align: left;
+  padding: 8px;
+}
+
+tr:nth-child(even){
+  background-color: #f2f2f2
+}
+
+h1{
+  color: #000;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+h3{
+  color: #fff;
+  text-align: center;
+  margin-bottom: 2px;
+}
+
+h5{
+  color: #fff;
+  text-align: center;
+  margin-bottom: 2px;
+}
+
+h6{
+  color: #ff9;
+  text-align: center;
+  margin-top: 15px;
+  margin-bottom: 1px;
+}
+
+@media screen and (max-width: 600px){
+  .contact-form{
+    flex-direction: column;
+  }
+}
